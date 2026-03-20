@@ -22,142 +22,81 @@ body{margin:0;font-family:'Rajdhani',sans-serif;background:var(--blue-deep);colo
 </style>
 </head>
 <body>
-
 <div class="header">⚔️ sopaipas_chile</div>
-
-<div id="pageRoster" class="page active">
-  <div class="loading" id="rosterContent">Cargando nómina...</div>
-</div>
-
-<div id="pageWar" class="page">
-  <div class="loading" id="warContent">Cargando guerra...</div>
-</div>
-
-<div id="pageRankings" class="page">
-  <div class="loading" id="rankingContent">Cargando rankings...</div>
-</div>
-
-<div id="pageStats" class="page">
-  <div class="loading" id="statsContent">Cargando estadísticas...</div>
-</div>
-
+<div id="pageRoster" class="page active"><div class="loading" id="rosterContent">Cargando nómina...</div></div>
+<div id="pageWar" class="page"><div class="loading" id="warContent">Cargando guerra...</div></div>
+<div id="pageRankings" class="page"><div class="loading" id="rankingContent">Cargando rankings...</div></div>
+<div id="pageStats" class="page"><div class="loading" id="statsContent">Cargando estadísticas...</div></div>
 <nav class="nav">
   <button class="nav-btn active" onclick="navigate('Roster',this)">Nómina</button>
   <button class="nav-btn" onclick="navigate('War',this)">Guerra</button>
   <button class="nav-btn" onclick="navigate('Rankings',this)">Rankings</button>
   <button class="nav-btn" onclick="navigate('Stats',this)">Stats</button>
 </nav>
-
 <script>
   const API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjJlOWE5MWZiLWE2MWMtNDY0OS05ZjllLTRjZDgxOGE0YTJkNiIsImlhdCI6MTc3Mzk3NzY0Mywic3ViIjoiZGV2ZWxvcGVyL2ZhYTg5ODY3LTMzNGYtNz U5MC0wMTkwLTUwNTY0NTgzNTMzMCIsInNjb3BlcyI6WyJyb3lhbGUiXSwibGltaXRzIjpbeyJ0aWVyIjoiZGV2ZWxvcGVyL3NpbHZlciIsInR5cGUiOiJ0aHJvdHRsaW5nIn0seyJjaWRycyI6WyIxODYuMTc1LjE5MC4zMSJdLCJ0eXBlIjoiY2xpZW50In1dfQ.P8NICfwGjwjyBukhsXEF3kSblo4MI96pdP_f5CLEWZ-8IpvRSSpK4pNHwytfQGVI1NQtpZAZZLT_WMn3NcghXg";
   const CLAN_TAG = "#G09GCYPJ";
-  const proxy = "https://corsproxy.io/?";
-
+  const WORKER = "https://throbbing-hat-a67d.c08121036.workers.dev";
   let clanCache = null;
-
-  function navigate(page, btn){
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page' + page).classList.add('active');
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  function navigate(page,btn){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page'+page).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    if(page === 'Roster')   loadRoster();
-    if(page === 'War')      loadWar();
-    if(page === 'Rankings') loadRankings();
-    if(page === 'Stats')    loadStats();
+    if(page==='Roster') loadRoster();
+    if(page==='War') loadWar();
+    if(page==='Rankings') loadRankings();
+    if(page==='Stats') loadStats();
   }
-
   async function apiCall(endpoint){
-    const tag = encodeURIComponent(CLAN_TAG);
-    const url = proxy + encodeURIComponent(`https://api.clashroyale.com/v1${endpoint.replace('%TAG%', tag)}`);
-    try {
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${API_KEY}` } });
-      if(!res.ok){ console.error('HTTP', res.status, endpoint); return null; }
+    const tag=encodeURIComponent(CLAN_TAG);
+    const target=encodeURIComponent(`https://api.clashroyale.com/v1${endpoint.replace('%TAG%',tag)}`);
+    const url=`${WORKER}?url=${target}&key=${encodeURIComponent(API_KEY)}`;
+    try{
+      const res=await fetch(url);
+      if(!res.ok){console.error('HTTP',res.status);return null;}
       return await res.json();
-    } catch(e) { console.error('Fetch error', e); return null; }
+    }catch(e){console.error(e);return null;}
   }
-
   async function getClan(){
     if(clanCache) return clanCache;
-    clanCache = await apiCall('/clans/%TAG%');
+    clanCache=await apiCall('/clans/%TAG%');
     return clanCache;
   }
-
   async function loadRoster(){
-    const container = document.getElementById('rosterContent');
-    container.innerHTML = 'Cargando nómina...';
-    const data = await getClan();
-    if(!data){ container.innerHTML = '❌ API Key inválida o error de red'; return; }
-    const members = data.memberList || [];
-    container.innerHTML = members.map(m => `
-      <div class="card">
-        <strong>${m.name}</strong><br>
-        Trofeos: ${m.trophies} &nbsp;|&nbsp; Rol: ${translateRole(m.role)}<br>
-        Donaciones: ${m.donations} ↑ / ${m.donationsReceived} ↓
-      </div>
-    `).join('');
+    const c=document.getElementById('rosterContent');
+    c.innerHTML='Cargando...';
+    const data=await getClan();
+    if(!data){c.innerHTML='❌ API Key inválida o error de red';return;}
+    c.innerHTML=(data.memberList||[]).map(m=>`<div class="card"><strong>${m.name}</strong><br>Trofeos: ${m.trophies} | Rol: ${translateRole(m.role)}<br>Donaciones: ${m.donations} ↑ / ${m.donationsReceived} ↓</div>`).join('');
   }
-
   async function loadWar(){
-    const container = document.getElementById('warContent');
-    container.innerHTML = 'Cargando guerra...';
-    const data = await apiCall('/clans/%TAG%/currentriverrace');
-    if(!data){ container.innerHTML = '❌ API Key inválida o error de red'; return; }
-    const our = (data.clans || []).find(c => c.tag === CLAN_TAG) || {};
-    const participants = [...(our.participants || [])].sort((a,b) => (b.decksUsedToday||0) - (a.decksUsedToday||0));
-    container.innerHTML = `
-      <div class="card">
-        <strong>Participantes:</strong> ${participants.length}<br>
-        <strong>Fama:</strong> ${our.fame || 0}
-      </div>
-      ${participants.map(p => `
-        <div class="card">
-          <strong>${p.name}</strong><br>
-          Mazos hoy: ${p.decksUsedToday || 0} &nbsp;|&nbsp; Fama: ${p.fame || 0}
-        </div>
-      `).join('')}
-    `;
+    const c=document.getElementById('warContent');
+    c.innerHTML='Cargando...';
+    const data=await apiCall('/clans/%TAG%/currentriverrace');
+    if(!data){c.innerHTML='❌ API Key inválida o error de red';return;}
+    const our=(data.clans||[]).find(x=>x.tag===CLAN_TAG)||{};
+    const parts=[...(our.participants||[])].sort((a,b)=>(b.decksUsedToday||0)-(a.decksUsedToday||0));
+    c.innerHTML=`<div class="card"><strong>Participantes:</strong> ${parts.length}<br><strong>Fama:</strong> ${our.fame||0}</div>${parts.map(p=>`<div class="card"><strong>${p.name}</strong><br>Mazos hoy: ${p.decksUsedToday||0} | Fama: ${p.fame||0}</div>`).join('')}`;
   }
-
   async function loadRankings(){
-    const container = document.getElementById('rankingContent');
-    container.innerHTML = 'Cargando rankings...';
-    const data = await getClan();
-    if(!data){ container.innerHTML = '❌ API Key inválida o error de red'; return; }
-    const members = [...(data.memberList || [])].sort((a,b) => b.trophies - a.trophies);
-    container.innerHTML = members.map((m,i) => `
-      <div class="card">
-        <strong>${i+1}. ${m.name}</strong><br>
-        Trofeos: ${m.trophies} &nbsp;|&nbsp; Rol: ${translateRole(m.role)}
-      </div>
-    `).join('');
+    const c=document.getElementById('rankingContent');
+    c.innerHTML='Cargando...';
+    const data=await getClan();
+    if(!data){c.innerHTML='❌ API Key inválida o error de red';return;}
+    const members=[...(data.memberList||[])].sort((a,b)=>b.trophies-a.trophies);
+    c.innerHTML=members.map((m,i)=>`<div class="card"><strong>${i+1}. ${m.name}</strong><br>Trofeos: ${m.trophies} | Rol: ${translateRole(m.role)}</div>`).join('');
   }
-
   async function loadStats(){
-    const container = document.getElementById('statsContent');
-    container.innerHTML = 'Cargando estadísticas...';
-    const data = await getClan();
-    if(!data){ container.innerHTML = '❌ API Key inválida o error de red'; return; }
-    const totalDonaciones = (data.memberList || []).reduce((s,m) => s + (m.donations||0), 0);
-    container.innerHTML = `
-      <div class="card">
-        <strong>${data.name}</strong><br>
-        Puntaje del clan: ${data.clanScore || 0}<br>
-        Trofeos de guerra: ${data.clanWarTrophies || 0}<br>
-        Miembros: ${data.members || 0} / 50<br>
-        Donaciones totales: ${totalDonaciones}<br>
-        Trofeos requeridos: ${data.requiredTrophies || 0}
-      </div>
-      ${data.description ? `<div class="card">📝 ${data.description}</div>` : ''}
-    `;
+    const c=document.getElementById('statsContent');
+    c.innerHTML='Cargando...';
+    const data=await getClan();
+    if(!data){c.innerHTML='❌ API Key inválida o error de red';return;}
+    const total=(data.memberList||[]).reduce((s,m)=>s+(m.donations||0),0);
+    c.innerHTML=`<div class="card"><strong>${data.name}</strong><br>Puntaje: ${data.clanScore||0}<br>Trofeos guerra: ${data.clanWarTrophies||0}<br>Miembros: ${data.members||0}/50<br>Donaciones: ${total}<br>Trofeos requeridos: ${data.requiredTrophies||0}</div>${data.description?`<div class="card">📝 ${data.description}</div>`:''}`;
   }
-
-  function translateRole(role){
-    const map = {member:'Miembro', elder:'Anciano', coLeader:'Colíder', leader:'Líder'};
-    return map[role] || role;
-  }
-
+  function translateRole(r){return{member:'Miembro',elder:'Anciano',coLeader:'Colíder',leader:'Líder'}[r]||r;}
   loadRoster();
 </script>
-
 </body>
 </html>
