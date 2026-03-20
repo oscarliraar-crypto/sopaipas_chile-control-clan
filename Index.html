@@ -10,14 +10,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>
 :root{--gold:#FFD700;--blue-deep:#060D2E;--white:#FFFFFF;}
-body{margin:0;font-family:'Rajdhani',sans-serif;background:var(--blue-deep);color:var(--white);min-height:100vh;}
+body{margin:0;font-family:'Rajdhani',sans-serif;background:var(--blue-deep);color:var(--white);min-height:100vh;padding-bottom:60px;}
 .header{padding:15px;background:#0D1B5E;color:var(--gold);font-weight:bold;text-align:center;}
 .page{display:none;padding:10px;}
 .page.active{display:block;}
 .card{background:#0F1E5A;margin:10px;padding:15px;border-radius:10px;}
 .loading{margin-top:40px;color:#aaa;text-align:center;}
 .nav{position:fixed;bottom:0;left:0;right:0;background:#0d1b5e;display:flex;}
-.nav-btn{flex:1;padding:10px;color:#aaa;background:transparent;border:none;cursor:pointer;}
+.nav-btn{flex:1;padding:10px;color:#aaa;background:transparent;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:14px;}
 .nav-btn.active{color:var(--gold);}
 </style>
 </head>
@@ -49,65 +49,113 @@ body{margin:0;font-family:'Rajdhani',sans-serif;background:var(--blue-deep);colo
 </nav>
 
 <script>
-  // 🔥 SOLO CAMBIA ESTO 👍🏻
   const API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImU4YTM1NzFkLWE4YjEtNGE3My05MjkxLTBiYThhM2MxYmE3NiIsImlhdCI6MTc3Mzk2OTYwNywic3ViIjoiZGV2ZWxvcGVyL2ZhYTg5ODY3LTMzNGYtN zU5MC0wMTkwLTUwNTY0NTgzNTMzMCIsInNjb3BlcyI6WyJyb3lhbGUiXSwibGltaXRzIjpbeyJ0aWVyIjoiZGV2ZWxvcGVyL3NpbHZlciIsInR5cGUiOiJ0aHJvdHRsaW5nIn0seyJjaWRycyI6WyIxODEuNDMuMjA5Ljc0Il0sInR5cGUiOiJjbGllbnQifV19.7CJoXTDZ9mLSdhZzU2ko4uOzHDBUfEDT_z964gcQmS6goJDSAbKWinDaaoX-c7x0wEYGdzz8T9l7aEJUycOrGg"; // Reemplaza el dedito por tu API Key
   const CLAN_TAG = "#G09GCYPJ";
   const proxy = "https://corsproxy.io/?";
 
-  function navigate(page,btn){
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.getElementById('page'+page).classList.add('active');
-    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  let clanCache = null;
+
+  function navigate(page, btn){
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page' + page).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    if(page==='Roster') loadRoster();
-    if(page==='War') loadWar();
-    if(page==='Rankings') loadRankings();
-    if(page==='Stats') loadStats();
+    if(page === 'Roster')   loadRoster();
+    if(page === 'War')      loadWar();
+    if(page === 'Rankings') loadRankings();
+    if(page === 'Stats')    loadStats();
   }
 
   async function apiCall(endpoint){
-    const url = `${proxy}https://api.clashroyale.com/v1${endpoint.replace('{tag}',encodeURIComponent(CLAN_TAG))}`;
-    try{
-      const res = await fetch(url,{headers:{Authorization:`Bearer ${API_KEY}`}});
-      if(!res.ok) return null;
+    const tag = encodeURIComponent(CLAN_TAG);
+    const url = proxy + encodeURIComponent(`https://api.clashroyale.com/v1${endpoint.replace('%TAG%', tag)}`);
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${API_KEY}` } });
+      if(!res.ok){ console.error('HTTP', res.status, endpoint); return null; }
       return await res.json();
-    }catch(e){return null;}
+    } catch(e) { console.error('Fetch error', e); return null; }
   }
 
-  // 🚀 Nómina
+  async function getClan(){
+    if(clanCache) return clanCache;
+    clanCache = await apiCall('/clans/%TAG%');
+    return clanCache;
+  }
+
   async function loadRoster(){
-    const data = await apiCall('/clans/{tag}');
     const container = document.getElementById('rosterContent');
-    if(!data){container.innerHTML='❌ API Key inválida o Failed to fetch'; return;}
-    container.innerHTML = data.members.map(m=>`<div class="card">${m.name} - Trofeos: ${m.trophies}</div>`).join('');
+    container.innerHTML = 'Cargando nómina...';
+    const data = await getClan();
+    if(!data){ container.innerHTML = '❌ API Key inválida o error de red'; return; }
+    const members = data.memberList || [];
+    container.innerHTML = members.map(m => `
+      <div class="card">
+        <strong>${m.name}</strong><br>
+        Trofeos: ${m.trophies} &nbsp;|&nbsp; Rol: ${translateRole(m.role)}<br>
+        Donaciones: ${m.donations} ↑ / ${m.donationsReceived} ↓
+      </div>
+    `).join('');
   }
 
-  // 🚀 Guerra
   async function loadWar(){
-    const data = await apiCall('/clans/{tag}/currentriverrace');
     const container = document.getElementById('warContent');
-    if(!data){container.innerHTML='❌ API Key inválida o Failed to fetch'; return;}
-    const our = (data.clans||[]).find(c=>c.tag===CLAN_TAG) || {participants:[]};
-    container.innerHTML = `<div class="card">Participantes: ${our.participants.length}</div>`;
+    container.innerHTML = 'Cargando guerra...';
+    const data = await apiCall('/clans/%TAG%/currentriverrace');
+    if(!data){ container.innerHTML = '❌ API Key inválida o error de red'; return; }
+    const our = (data.clans || []).find(c => c.tag === CLAN_TAG) || {};
+    const participants = [...(our.participants || [])].sort((a,b) => (b.decksUsedToday||0) - (a.decksUsedToday||0));
+    container.innerHTML = `
+      <div class="card">
+        <strong>Participantes:</strong> ${participants.length}<br>
+        <strong>Fama:</strong> ${our.fame || 0}
+      </div>
+      ${participants.map(p => `
+        <div class="card">
+          <strong>${p.name}</strong><br>
+          Mazos hoy: ${p.decksUsedToday || 0} &nbsp;|&nbsp; Fama: ${p.fame || 0}
+        </div>
+      `).join('')}
+    `;
   }
 
-  // 🚀 Rankings
   async function loadRankings(){
-    const data = await apiCall('/clans/{tag}/members');
     const container = document.getElementById('rankingContent');
-    if(!data){container.innerHTML='❌ API Key inválida o Failed to fetch'; return;}
-    container.innerHTML = data.items.map((m,i)=>`<div class="card">${i+1}. ${m.name} - Trofeos: ${m.trophies}</div>`).join('');
+    container.innerHTML = 'Cargando rankings...';
+    const data = await getClan();
+    if(!data){ container.innerHTML = '❌ API Key inválida o error de red'; return; }
+    const members = [...(data.memberList || [])].sort((a,b) => b.trophies - a.trophies);
+    container.innerHTML = members.map((m,i) => `
+      <div class="card">
+        <strong>${i+1}. ${m.name}</strong><br>
+        Trofeos: ${m.trophies} &nbsp;|&nbsp; Rol: ${translateRole(m.role)}
+      </div>
+    `).join('');
   }
 
-  // 🚀 Stats
   async function loadStats(){
-    const data = await apiCall('/clans/{tag}');
     const container = document.getElementById('statsContent');
-    if(!data){container.innerHTML='❌ API Key inválida o Failed to fetch'; return;}
-    container.innerHTML = `<div class="card">Puntos del clan: ${data.clanScore}</div>`;
+    container.innerHTML = 'Cargando estadísticas...';
+    const data = await getClan();
+    if(!data){ container.innerHTML = '❌ API Key inválida o error de red'; return; }
+    const totalDonaciones = (data.memberList || []).reduce((s,m) => s + (m.donations||0), 0);
+    container.innerHTML = `
+      <div class="card">
+        <strong>${data.name}</strong><br>
+        Puntaje del clan: ${data.clanScore || 0}<br>
+        Trofeos de guerra: ${data.clanWarTrophies || 0}<br>
+        Miembros: ${data.members || 0} / 50<br>
+        Donaciones totales: ${totalDonaciones}<br>
+        Trofeos requeridos: ${data.requiredTrophies || 0}
+      </div>
+      ${data.description ? `<div class="card">📝 ${data.description}</div>` : ''}
+    `;
   }
 
-  // Cargar inicial
+  function translateRole(role){
+    const map = {member:'Miembro', elder:'Anciano', coLeader:'Colíder', leader:'Líder'};
+    return map[role] || role;
+  }
+
   loadRoster();
 </script>
 
