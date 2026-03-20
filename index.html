@@ -34,7 +34,6 @@ body{margin:0;font-family:'Rajdhani',sans-serif;background:var(--blue-deep);colo
   <button class="nav-btn" onclick="navigate('Stats',this)">Stats</button>
 </nav>
 <script>
-  const API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjJlOWE5MWZiLWE2MWMtNDY0OS05ZjllLTRjZDgxOGE0YTJkNiIsImlhdCI6MTc3Mzk3NzY0Mywic3ViIjoiZGV2ZWxvcGVyL2ZhYTg5ODY3LTMzNGYtNz U5MC0wMTkwLTUwNTY0NTgzNTMzMCIsInNjb3BlcyI6WyJyb3lhbGUiXSwibGltaXRzIjpbeyJ0aWVyIjoiZGV2ZWxvcGVyL3NpbHZlciIsInR5cGUiOiJ0aHJvdHRsaW5nIn0seyJjaWRycyI6WyIxODYuMTc1LjE5MC4zMSJdLCJ0eXBlIjoiY2xpZW50In1dfQ.P8NICfwGjwjyBukhsXEF3kSblo4MI96pdP_f5CLEWZ-8IpvRSSpK4pNHwytfQGVI1NQtpZAZZLT_WMn3NcghXg";
   const CLAN_TAG = "#G09GCYPJ";
   const WORKER = "https://throbbing-hat-a67d.c08121036.workers.dev";
   let clanCache = null;
@@ -51,7 +50,7 @@ body{margin:0;font-family:'Rajdhani',sans-serif;background:var(--blue-deep);colo
   async function apiCall(endpoint){
     const tag=encodeURIComponent(CLAN_TAG);
     const target=encodeURIComponent(`https://api.clashroyale.com/v1${endpoint.replace('%TAG%',tag)}`);
-    const url=`${WORKER}?url=${target}&key=${encodeURIComponent(API_KEY)}`;
+    const url=`${WORKER}?url=${target}`;
     try{
       const res=await fetch(url);
       if(!res.ok){console.error('HTTP',res.status);return null;}
@@ -67,14 +66,14 @@ body{margin:0;font-family:'Rajdhani',sans-serif;background:var(--blue-deep);colo
     const c=document.getElementById('rosterContent');
     c.innerHTML='Cargando...';
     const data=await getClan();
-    if(!data){c.innerHTML='❌ API Key inválida o error de red';return;}
+    if(!data){c.innerHTML='❌ Error de red';return;}
     c.innerHTML=(data.memberList||[]).map(m=>`<div class="card"><strong>${m.name}</strong><br>Trofeos: ${m.trophies} | Rol: ${translateRole(m.role)}<br>Donaciones: ${m.donations} ↑ / ${m.donationsReceived} ↓</div>`).join('');
   }
   async function loadWar(){
     const c=document.getElementById('warContent');
     c.innerHTML='Cargando...';
     const data=await apiCall('/clans/%TAG%/currentriverrace');
-    if(!data){c.innerHTML='❌ API Key inválida o error de red';return;}
+    if(!data){c.innerHTML='❌ Error de red';return;}
     const our=(data.clans||[]).find(x=>x.tag===CLAN_TAG)||{};
     const parts=[...(our.participants||[])].sort((a,b)=>(b.decksUsedToday||0)-(a.decksUsedToday||0));
     c.innerHTML=`<div class="card"><strong>Participantes:</strong> ${parts.length}<br><strong>Fama:</strong> ${our.fame||0}</div>${parts.map(p=>`<div class="card"><strong>${p.name}</strong><br>Mazos hoy: ${p.decksUsedToday||0} | Fama: ${p.fame||0}</div>`).join('')}`;
@@ -83,7 +82,7 @@ body{margin:0;font-family:'Rajdhani',sans-serif;background:var(--blue-deep);colo
     const c=document.getElementById('rankingContent');
     c.innerHTML='Cargando...';
     const data=await getClan();
-    if(!data){c.innerHTML='❌ API Key inválida o error de red';return;}
+    if(!data){c.innerHTML='❌ Error de red';return;}
     const members=[...(data.memberList||[])].sort((a,b)=>b.trophies-a.trophies);
     c.innerHTML=members.map((m,i)=>`<div class="card"><strong>${i+1}. ${m.name}</strong><br>Trofeos: ${m.trophies} | Rol: ${translateRole(m.role)}</div>`).join('');
   }
@@ -91,7 +90,7 @@ body{margin:0;font-family:'Rajdhani',sans-serif;background:var(--blue-deep);colo
     const c=document.getElementById('statsContent');
     c.innerHTML='Cargando...';
     const data=await getClan();
-    if(!data){c.innerHTML='❌ API Key inválida o error de red';return;}
+    if(!data){c.innerHTML='❌ Error de red';return;}
     const total=(data.memberList||[]).reduce((s,m)=>s+(m.donations||0),0);
     c.innerHTML=`<div class="card"><strong>${data.name}</strong><br>Puntaje: ${data.clanScore||0}<br>Trofeos guerra: ${data.clanWarTrophies||0}<br>Miembros: ${data.members||0}/50<br>Donaciones: ${total}<br>Trofeos requeridos: ${data.requiredTrophies||0}</div>${data.description?`<div class="card">📝 ${data.description}</div>`:''}`;
   }
