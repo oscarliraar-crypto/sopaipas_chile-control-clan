@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#060D2E"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Sopaipas Chile"/>
+<title>⚔️ sopaipas_chile</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{--gold:#FFD700;--blue-deep:#060D2E;--white:#FFFFFF;}
+body{margin:0;font-family:'Rajdhani',sans-serif;background:var(--blue-deep);color:var(--white);min-height:100vh;}
+.header{padding:15px;background:#0D1B5E;color:var(--gold);font-weight:bold;text-align:center;}
+.page{display:none;padding:10px;}
+.page.active{display:block;}
+.card{background:#0F1E5A;margin:10px;padding:15px;border-radius:10px;}
+.loading{margin-top:40px;color:#aaa;text-align:center;}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#0d1b5e;display:flex;}
+.nav-btn{flex:1;padding:10px;color:#aaa;background:transparent;border:none;cursor:pointer;}
+.nav-btn.active{color:var(--gold);}
+</style>
+</head>
+<body>
+
+<div class="header">⚔️ sopaipas_chile</div>
+
+<div id="pageRoster" class="page active">
+  <div class="loading" id="rosterContent">Cargando nómina...</div>
+</div>
+
+<div id="pageWar" class="page">
+  <div class="loading" id="warContent">Cargando guerra...</div>
+</div>
+
+<div id="pageRankings" class="page">
+  <div class="loading" id="rankingContent">Cargando rankings...</div>
+</div>
+
+<div id="pageStats" class="page">
+  <div class="loading" id="statsContent">Cargando estadísticas...</div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="navigate('Roster',this)">Nómina</button>
+  <button class="nav-btn" onclick="navigate('War',this)">Guerra</button>
+  <button class="nav-btn" onclick="navigate('Rankings',this)">Rankings</button>
+  <button class="nav-btn" onclick="navigate('Stats',this)">Stats</button>
+</nav>
+
+<script>
+  // 🔥 SOLO CAMBIA ESTO 👍🏻
+  const API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImU4YTM1NzFkLWE4YjEtNGE3My05MjkxLTBiYThhM2MxYmE3NiIsImlhdCI6MTc3Mzk2OTYwNywic3ViIjoiZGV2ZWxvcGVyL2ZhYTg5ODY3LTMzNGYtN zU5MC0wMTkwLTUwNTY0NTgzNTMzMCIsInNjb3BlcyI6WyJyb3lhbGUiXSwibGltaXRzIjpbeyJ0aWVyIjoiZGV2ZWxvcGVyL3NpbHZlciIsInR5cGUiOiJ0aHJvdHRsaW5nIn0seyJjaWRycyI6WyIxODEuNDMuMjA5Ljc0Il0sInR5cGUiOiJjbGllbnQifV19.7CJoXTDZ9mLSdhZzU2ko4uOzHDBUfEDT_z964gcQmS6goJDSAbKWinDaaoX-c7x0wEYGdzz8T9l7aEJUycOrGg"; // Reemplaza el dedito por tu API Key
+  const CLAN_TAG = "#G09GCYPJ";
+  const proxy = "https://corsproxy.io/?";
+
+  function navigate(page,btn){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page'+page).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    if(page==='Roster') loadRoster();
+    if(page==='War') loadWar();
+    if(page==='Rankings') loadRankings();
+    if(page==='Stats') loadStats();
+  }
+
+  async function apiCall(endpoint){
+    const url = `${proxy}https://api.clashroyale.com/v1${endpoint.replace('{tag}',encodeURIComponent(CLAN_TAG))}`;
+    try{
+      const res = await fetch(url,{headers:{Authorization:`Bearer ${API_KEY}`}});
+      if(!res.ok) return null;
+      return await res.json();
+    }catch(e){return null;}
+  }
+
+  // 🚀 Nómina
+  async function loadRoster(){
+    const data = await apiCall('/clans/{tag}');
+    const container = document.getElementById('rosterContent');
+    if(!data){container.innerHTML='❌ API Key inválida o Failed to fetch'; return;}
+    container.innerHTML = data.members.map(m=>`<div class="card">${m.name} - Trofeos: ${m.trophies}</div>`).join('');
+  }
+
+  // 🚀 Guerra
+  async function loadWar(){
+    const data = await apiCall('/clans/{tag}/currentriverrace');
+    const container = document.getElementById('warContent');
+    if(!data){container.innerHTML='❌ API Key inválida o Failed to fetch'; return;}
+    const our = (data.clans||[]).find(c=>c.tag===CLAN_TAG) || {participants:[]};
+    container.innerHTML = `<div class="card">Participantes: ${our.participants.length}</div>`;
+  }
+
+  // 🚀 Rankings
+  async function loadRankings(){
+    const data = await apiCall('/clans/{tag}/members');
+    const container = document.getElementById('rankingContent');
+    if(!data){container.innerHTML='❌ API Key inválida o Failed to fetch'; return;}
+    container.innerHTML = data.items.map((m,i)=>`<div class="card">${i+1}. ${m.name} - Trofeos: ${m.trophies}</div>`).join('');
+  }
+
+  // 🚀 Stats
+  async function loadStats(){
+    const data = await apiCall('/clans/{tag}');
+    const container = document.getElementById('statsContent');
+    if(!data){container.innerHTML='❌ API Key inválida o Failed to fetch'; return;}
+    container.innerHTML = `<div class="card">Puntos del clan: ${data.clanScore}</div>`;
+  }
+
+  // Cargar inicial
+  loadRoster();
+</script>
+
+</body>
+</html>
